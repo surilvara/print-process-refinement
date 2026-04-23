@@ -1,0 +1,10 @@
+python-doctr[torch]
+transformers
+torch
+torchvision
+spacy
+Pillow
+pypdfium2
+loguru
+pyyaml
+opencv-python
