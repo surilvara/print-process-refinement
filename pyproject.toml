@@ -1,0 +1,22 @@
+[project]
+name = "print-document-pipeline"
+version = "1.0.0"
+description = "Modular pipeline for extracting structured information from scanned newspaper/magazine images"
+requires-python = ">=3.10"
+dependencies = [
+    "python-doctr[torch]",
+    "transformers",
+    "torch",
+    "torchvision",
+    "spacy",
+    "Pillow",
+    "pypdfium2",
+    "loguru",
+    "pyyaml",
+    "opencv-python",
+    "paddlepaddle",
+    "paddleocr",
+]
+
+[project.scripts]
+pipeline = "main:main"
