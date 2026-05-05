@@ -13,3 +13,6 @@ Requires-Dist: pypdfium2
 Requires-Dist: loguru
 Requires-Dist: pyyaml
 Requires-Dist: opencv-python
+Requires-Dist: paddlepaddle
+Requires-Dist: paddleocr[doc-parser]
+Requires-Dist: mlx-vlm>=0.3.11; sys_platform == "darwin" and platform_machine == "arm64"

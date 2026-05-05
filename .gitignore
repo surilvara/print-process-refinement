@@ -6,3 +6,5 @@ processed/
 output/
 # Log files
 logs/
+# MLX server PID file (auto-managed by .envrc)
+.mlx_server.pid

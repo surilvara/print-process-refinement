@@ -14,6 +14,10 @@ class ModelConfig:
     detection: str | None = None
     recognition: str | None = None
     confidence_threshold: float = 0.3
+    # PaddleOCR-VL remote VL backend (e.g. MLX-VLM server on Apple Silicon)
+    vl_rec_backend: str | None = None
+    vl_rec_server_url: str | None = None
+    vl_rec_api_model_name: str | None = None
 
 
 @dataclass
@@ -56,6 +60,9 @@ class PipelineConfig:
                 detection=cfg.get("detection"),
                 recognition=cfg.get("recognition"),
                 confidence_threshold=cfg.get("confidence_threshold", 0.3),
+                vl_rec_backend=cfg.get("vl_rec_backend"),
+                vl_rec_server_url=cfg.get("vl_rec_server_url"),
+                vl_rec_api_model_name=cfg.get("vl_rec_api_model_name"),
             )
 
         detection_prompts: dict[str, list[str]] = {}

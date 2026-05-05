@@ -6,6 +6,7 @@ from loguru import logger
 from PIL import Image
 from transformers import AutoProcessor, AutoModelForTokenClassification
 
+from src.device import best_torch_device, log_device_once
 from src.models.base import (
     BBox,
     ClassifiedTextBlock,
@@ -40,16 +41,18 @@ class LayoutLMv3Layout(LayoutModel):
         self.processor = None
         self.model = None
         self._use_heuristic = False
+        self.device = best_torch_device()
 
     def load(self) -> None:
         logger.info(f"Loading LayoutLMv3 model: {self.model_name}")
+        log_device_once("LayoutLMv3", self.device)
         try:
             self.processor = AutoProcessor.from_pretrained(
                 self.model_name, apply_ocr=False
             )
             self.model = AutoModelForTokenClassification.from_pretrained(
                 self.model_name
-            )
+            ).to(self.device)
             self.model.eval()
             logger.info("LayoutLMv3 token classification model loaded")
         except Exception:
@@ -104,9 +107,10 @@ class LayoutLMv3Layout(LayoutModel):
             truncation=True,
             max_length=512,
         )
+        encoding_on_device = {k: v.to(self.device) for k, v in encoding.items()}
 
         with torch.no_grad():
-            outputs = self.model(**encoding)
+            outputs = self.model(**encoding_on_device)
 
         logits = outputs.logits
         predictions = logits.argmax(-1).squeeze().tolist()

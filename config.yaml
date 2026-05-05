@@ -1,11 +1,22 @@
 # Pipeline model configuration — swap models by changing values here
 models:
   ocr:
-    backend: "ppstructure"
-    model_name: "en"  # language: en, fr, it, latin etc.
+    backend: "paddleocr_vl"
+    model_name: "PaddleOCR-VL-1.5"  # label only; pipeline weights are picked by paddleocr
+    # Apple Silicon GPU: offload VLM recognition to a local MLX-VLM server.
+    # Start it with `./scripts/start_mlx_server.sh` before running the pipeline.
+    # Comment these three lines out to fall back to CPU-only PaddlePaddle.
+    vl_rec_backend: "mlx-vlm-server"
+    # MLX-VLM exposes an OpenAI-compatible API under /v1 — the suffix is required,
+    # otherwise PaddleOCR's client posts to /chat/completions and the server 404s
+    # while PaddleOCR silently falls back to slow CPU inference.
+    vl_rec_server_url: "http://localhost:8111/v1"
+    # Must match the model the MLX server preloaded (see scripts/start_mlx_server.sh).
+    # Mismatch forces MLX to unload + reload, costing minutes per run.
+    vl_rec_api_model_name: "mlx-community/PaddleOCR-VL-1.5-bf16"
   layout:
-    backend: "ppstructure"  # shares the same instance as ocr when backend matches
-    model_name: "PP-StructureV3"  # label only; overridden by ocr instance
+    backend: "paddleocr_vl"  # shares the same instance as ocr when backend matches
+    model_name: "PaddleOCR-VL-1.5"  # label only; overridden by ocr instance
   ner:
     backend: "spacy"
     model_name: "en_core_web_trf"

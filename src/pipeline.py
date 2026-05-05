@@ -20,17 +20,24 @@ from src.models.image_analysis.owlv2 import OWLv2ImageAnalysis
 from src.models.layout.layoutlmv3 import LayoutLMv3Layout
 from src.models.ner.spacy_ner import SpacyNER
 from src.models.ocr.doctr_ocr import DocTROCR
+from src.models.ocr.paddleocr_vl import PaddleOCRVLBackend
 from src.models.ocr.ppstructure import PPStructureBackend
 from src.output_handler import write_result
+
+# Backends that handle both OCR and layout in a single pass — the same
+# instance is shared between the OCR and layout stages.
+COMBINED_OCR_LAYOUT_BACKENDS = {"ppstructure", "paddleocr_vl"}
 
 # Registry of available model backends
 OCR_BACKENDS: dict[str, type[OCRModel]] = {
     "doctr": DocTROCR,
     "ppstructure": PPStructureBackend,
+    "paddleocr_vl": PaddleOCRVLBackend,
 }
 LAYOUT_BACKENDS: dict[str, type[LayoutModel]] = {
     "layoutlmv3": LayoutLMv3Layout,
     "ppstructure": PPStructureBackend,
+    "paddleocr_vl": PaddleOCRVLBackend,
 }
 NER_BACKENDS: dict[str, type[NERModel]] = {
     "spacy": SpacyNER,
@@ -56,6 +63,12 @@ def _create_ocr(config: PipelineConfig) -> OCRModel:
         )
     if cfg.backend == "ppstructure":
         return cls(lang=cfg.model_name or "en")
+    if cfg.backend == "paddleocr_vl":
+        return cls(
+            vl_rec_backend=cfg.vl_rec_backend,
+            vl_rec_server_url=cfg.vl_rec_server_url,
+            vl_rec_api_model_name=cfg.vl_rec_api_model_name,
+        )
     return cls()
 
 
@@ -115,9 +128,9 @@ class Pipeline:
         self.config = config
         ocr_cfg = config.models.get("ocr")
 
-        # PP-Structure handles both OCR and layout in a single pass —
+        # Some backends handle both OCR and layout in a single pass —
         # share the same instance for both stages.
-        if ocr_cfg and ocr_cfg.backend == "ppstructure":
+        if ocr_cfg and ocr_cfg.backend in COMBINED_OCR_LAYOUT_BACKENDS:
             shared = _create_ocr(config)
             self.ocr: OCRModel = shared
             self.layout: LayoutModel = shared  # type: ignore[assignment]
@@ -127,7 +140,9 @@ class Pipeline:
 
         self.ner: NERModel = _create_ner(config)
         self.image_analysis: ImageAnalysisModel = _create_image_analysis(config)
-        self._combined_backend = ocr_cfg and ocr_cfg.backend == "ppstructure"
+        self._combined_backend = (
+            ocr_cfg and ocr_cfg.backend in COMBINED_OCR_LAYOUT_BACKENDS
+        )
 
     def load_models(self) -> None:
         """Load all models. Call once before processing."""

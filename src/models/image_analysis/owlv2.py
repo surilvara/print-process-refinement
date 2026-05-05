@@ -6,6 +6,7 @@ from loguru import logger
 from PIL import Image
 from transformers import Owlv2ForObjectDetection, Owlv2Processor
 
+from src.device import best_torch_device, log_device_once
 from src.models.base import (
     BBox,
     Detection,
@@ -27,11 +28,15 @@ class OWLv2ImageAnalysis(ImageAnalysisModel):
         self.confidence_threshold = confidence_threshold
         self.processor = None
         self.model = None
+        self.device = best_torch_device()
 
     def load(self) -> None:
         logger.info(f"Loading OWLv2 model: {self.model_name}")
+        log_device_once("OWLv2", self.device)
         self.processor = Owlv2Processor.from_pretrained(self.model_name)
-        self.model = Owlv2ForObjectDetection.from_pretrained(self.model_name)
+        self.model = Owlv2ForObjectDetection.from_pretrained(self.model_name).to(
+            self.device
+        )
         self.model.eval()
         logger.info("OWLv2 model loaded")
 
@@ -76,12 +81,14 @@ class OWLv2ImageAnalysis(ImageAnalysisModel):
         # OWLv2 expects a list of text queries
         texts = [prompts]
 
-        inputs = self.processor(text=texts, images=pil_image, return_tensors="pt")
+        inputs = self.processor(text=texts, images=pil_image, return_tensors="pt").to(
+            self.device
+        )
 
         with torch.no_grad():
             outputs = self.model(**inputs)
 
-        target_sizes = torch.tensor([pil_image.size[::-1]])  # (height, width)
+        target_sizes = torch.tensor([pil_image.size[::-1]]).to(self.device)  # (h, w)
 
         # Handle API difference across transformers versions
         post_process = getattr(
