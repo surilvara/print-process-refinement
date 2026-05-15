@@ -12,3 +12,9 @@ logs/
 .mlx_server.pid
 
 .env
+
+__pycache__/
+
+outputs/*
+
+responses/*
