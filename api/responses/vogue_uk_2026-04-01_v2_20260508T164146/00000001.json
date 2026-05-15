@@ -1,0 +1,19 @@
+{
+  "image": "00000001",
+  "window": {
+    "start": 1,
+    "end": 6
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n  \"classification\": \"editorial\",\n  \"reason\": \"This is the cover of Vogue magazine featuring Olivia Rodrigo as the cover star, which is editorial content (the magazine's own feature presentation) rather than a paid advertisement.\",\n  \"confidence\": 0.95\n}",
+  "usage": {
+    "input_tokens": 10364,
+    "output_tokens": 99,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 10463,
+    "cost_usd": 0.027147
+  },
+  "timestamp": "20260508T164146",
+  "batch_id": "msgbatch_01EFXaMsfZ7JVCP2jAkBWvUq"
+}

@@ -1,0 +1,19 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000044.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "prompt": "no_context",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is the Editor's Letter from British Vogue, written by the magazine's editor introducing the issue's content, including features on Queen Elizabeth II, Charlotte Rampling, and cover star Olivia Rodrigo. It includes a personal signature and is clearly editorial content, not advertising.\",\n    \"confidence\": 1.0\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 135,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12192,
+    "cost_usd": 0.06366
+  },
+  "timestamp": "20260508T224620"
+}

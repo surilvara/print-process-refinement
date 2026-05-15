@@ -1,0 +1,18 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000154.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is part of the Olivia Rodrigo cover feature article in British Vogue, with page number 150, narrative editorial text discussing her career, and a continuation marker (>216). It's clearly part of the magazine's editorial content.\",\n    \"confidence\": 0.98\n}",
+  "usage": {
+    "input_tokens": 12413,
+    "output_tokens": 112,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12525,
+    "cost_usd": 0.064865
+  },
+  "timestamp": "20260508T160236"
+}

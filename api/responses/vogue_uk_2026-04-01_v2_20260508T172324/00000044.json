@@ -1,0 +1,18 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000044.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is the Editor's Letter from British Vogue, where the editor introduces the issue's content, including features on Queen Elizabeth II's wardrobe exhibition, the V&A East Museum opening, Charlotte Rampling, and cover star Olivia Rodrigo. It is signed by the editor and contains editorial commentary, not promotional content for a specific product or brand.\",\n    \"confidence\": 0.98\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 160,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12217,
+    "cost_usd": 0.064285
+  },
+  "timestamp": "20260508T172324"
+}

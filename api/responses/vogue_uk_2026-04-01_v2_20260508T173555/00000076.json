@@ -1,0 +1,15 @@
+{
+  "image": "00000076",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is part of a 'Shop the Season' fashion editorial feature in British Vogue. It has a page number (72), an editorial section header, and styled fashion content with multiple brand credits (M&S, Polo Ralph Lauren, Stella McCartney, eBay, Tiffany & Co.) rather than promoting a single brand, indicating it's editorial content curated by the magazine.\",\n    \"confidence\": 0.95\n}",
+  "usage": {
+    "input_tokens": 12413,
+    "output_tokens": 164,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12577,
+    "cost_usd": 0.033083
+  },
+  "timestamp": "20260508T173555",
+  "batch_id": "msgbatch_015GUCBL3M9BB3pCBNXEtb9W"
+}

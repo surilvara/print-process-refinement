@@ -1,0 +1,19 @@
+{
+  "image": "00000076",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is a 'Shop the Season' fashion editorial feature from Vogue magazine, showcasing styled outfits with editorial photography and captions listing the various brands and prices. It is curated editorial content by the magazine, not a paid advertisement from a single brand.\",\n    \"confidence\": 0.95\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 123,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12180,
+    "cost_usd": 0.03168
+  },
+  "timestamp": "20260508T164146",
+  "batch_id": "msgbatch_01EFXaMsfZ7JVCP2jAkBWvUq"
+}

@@ -1,0 +1,15 @@
+{
+  "image": "00000001",
+  "model": "claude-opus-4-7",
+  "response": "{\n\"classification\": \"editorial\",\n\"reason\": \"This is the cover of British Vogue magazine featuring Olivia Rodrigo as the cover star. Magazine covers are editorial content, promoting the issue's featured story rather than advertising a specific product or brand.\",\n\"confidence\": 0.95\n}",
+  "usage": {
+    "input_tokens": 10364,
+    "output_tokens": 103,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 10467,
+    "cost_usd": 0.027197
+  },
+  "timestamp": "20260508T165633",
+  "batch_id": "msgbatch_015TdK2p2MF5EoLEzrPK3ZXo"
+}

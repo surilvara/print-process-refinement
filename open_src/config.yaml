@@ -1,0 +1,137 @@
+# Pipeline model configuration — swap models by changing values here
+models:
+  ocr:
+    backend: "paddleocr_vl"
+    model_name: "PaddleOCR-VL-1.5"  # label only; pipeline weights are picked by paddleocr
+    # Apple Silicon GPU: offload VLM recognition to a local MLX-VLM server.
+    # Start it with `./scripts/start_mlx_server.sh` before running the pipeline.
+    # Comment these three lines out to fall back to CPU-only PaddlePaddle.
+    vl_rec_backend: "mlx-vlm-server"
+    # MLX-VLM exposes an OpenAI-compatible API under /v1 — the suffix is required,
+    # otherwise PaddleOCR's client posts to /chat/completions and the server 404s
+    # while PaddleOCR silently falls back to slow CPU inference.
+    vl_rec_server_url: "http://localhost:8111/v1"
+    # Must match the model the MLX server preloaded (see scripts/start_mlx_server.sh).
+    # Mismatch forces MLX to unload + reload, costing minutes per run.
+    vl_rec_api_model_name: "mlx-community/PaddleOCR-VL-1.5-bf16"
+  layout:
+    backend: "paddleocr_vl"  # shares the same instance as ocr when backend matches
+    model_name: "PaddleOCR-VL-1.5"  # label only; overridden by ocr instance
+  ner:
+    # `dmr_alias_matcher` labels HOLDING / COMPANY / COMMERCIAL_COMPANY / BRAND
+    # using the DMR brand database (built by scripts/import_dmr_brands.py).
+    # `base_ner_backend` (optional) runs an underlying NER for PERSON/GPE/etc.;
+    # DMR spans win on overlap.
+    backend: "dmr_alias_matcher"
+    # Shared resource at the project root, built by `scripts/import_dmr_brands.py`.
+    dmr_db_path: "../database/dmr.db"
+    base_ner_backend: "spacy"
+    base_ner_model_name: "en_core_web_trf"
+  image_analysis:
+    backend: "owlv2"
+    model_name: "google/owlv2-base-patch16-ensemble"
+    confidence_threshold: 0.3
+
+# Remap entity labels (applies to the base NER backend only — DMR labels
+# are emitted verbatim and should not be remapped here).
+# Full list of spaCy labels: PERSON, NORP, FAC, ORG, GPE, LOC, PRODUCT,
+#   EVENT, WORK_OF_ART, LAW, LANGUAGE, DATE, TIME, PERCENT, MONEY,
+#   QUANTITY, ORDINAL, CARDINAL
+label_remapping: {}
+
+# OWLv2 detection prompts — add/remove as needed
+detection_prompts:
+  people:
+    - "person"
+    - "face"
+    - "model"
+  logos:
+    - "brand logo"
+    - "logo"
+  fashion_beauty:
+    - "clothing"
+    - "accessories"
+    - "perfume"
+    - "makeup"
+    - "watch"
+    - "jewellery"
+    - "handbag"
+    - "shoes"
+  advertising:
+    - "advertisement"
+    - "product advertisement"
+
+# Output settings
+output:
+  directory: "output"
+  include_timestamp: true
+  include_model_names: true
+
+# Logging
+logging:
+  level: "INFO"
+  file: "logs/pipeline.log"
+
+# SQLite mirror of output JSON. JSON files in output.directory remain the
+# source of truth; the DB is best-effort — failures log a warning and the
+# pipeline continues. Look up full payload via output_json_filename.
+database:
+  enabled: true
+  path: "database/results.db"
+
+# How to derive (magazine_name, issue_date) for a publication folder.
+# Pluggable — register new backends in src/publication.py and switch here.
+# Available: folder_name_regex (default — parses <magazine>_<YYYY-MM-DD>
+# or <magazine>_<YYYY-MM>).
+publication_extraction:
+  backend: "folder_name_regex"
+
+# Heuristic that labels each page 'editorial', 'advertising', or 'advertorial'. A page is
+# 'advertorial' if a primary PR keyword is found in any text block (with a structural
+# override for Japan/Korea publishers — see japan_korea_publisher_keywords below).
+# A page is 'advertising' if either condition holds:
+#   - the share of text blocks classified as 'advertisement_copy' meets the
+#     ratio threshold, OR
+#   - any image region has an OWLv2 detection in the listed labels at or
+#     above the confidence threshold.
+# Both knobs are tunable per project. Replaceable later by a real classifier
+# without changing the schema (the column accepts any string).
+page_classification:
+  advertisement_block_ratio: 0.5
+  advertisement_detection_confidence: 0.5
+  advertisement_detection_labels:
+    - "advertisement"
+    - "product advertisement"
+  # Primary advertorial/PR label keywords — case-insensitive substring match.
+  # Any text block containing one of these triggers 'advertorial' classification
+  # (subject to the Japan/Korea structural override below).
+  pr_keywords:
+    - "advertorial"
+    - "advertising feature"
+    - "advertising section"
+    - "sponsored by"
+    - "sponsored content"
+    - "presented by"
+    - "in collaboration with"
+    - "promotion"
+    - "publicité"
+    - "messaggio promozionale"
+    - "informazione pubblicitaria"
+    - "publiredazionale"
+    - "廣編特輯"
+    - "特約專輯"
+    - "全頁廣告"
+    - "商稿"
+    - "專刊"
+    - "廣編特企"
+  # In Japan/Korea publications, "Sponsored" and "In Collaboration With" appear
+  # on legitimate editorial pages. For these publishers, a PR keyword alone is
+  # insufficient — the page must also lack a byline block (no redattore/fotografo
+  # credits) to be called 'advertorial'. Add magazine_name substrings here.
+  japan_korea_publisher_keywords:
+    - "japan"
+    - "korea"
+    - "japanese"
+    - "korean"
+    - "japon"
+    - "giappone"

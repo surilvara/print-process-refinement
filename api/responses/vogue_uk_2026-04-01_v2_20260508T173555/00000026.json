@@ -1,0 +1,15 @@
+{
+  "image": "00000026",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"advertising\",\n    \"reason\": \"Page features only the Van Cleef & Arpels brand name, tagline, logo, retail locations, and website with no editorial content, no page number, and no staff credits\u2014classic full-page brand advertisement.\",\n    \"confidence\": 0.99\n}",
+  "usage": {
+    "input_tokens": 12413,
+    "output_tokens": 101,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12514,
+    "cost_usd": 0.032295
+  },
+  "timestamp": "20260508T173555",
+  "batch_id": "msgbatch_015GUCBL3M9BB3pCBNXEtb9W"
+}

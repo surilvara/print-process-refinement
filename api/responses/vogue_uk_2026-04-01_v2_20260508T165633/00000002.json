@@ -1,0 +1,15 @@
+{
+  "image": "00000002",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"advertising\",\n    \"reason\": \"This page is a full-page fashion image with no editorial text, captions, or article context. It appears to be part of an advertising spread (likely paired with the Van Cleef & Arpels branding on page 3), featuring a model in a red dress with no editorial context typical of magazine fashion features.\",\n    \"confidence\": 0.85\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 127,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12184,
+    "cost_usd": 0.03173
+  },
+  "timestamp": "20260508T165633",
+  "batch_id": "msgbatch_015TdK2p2MF5EoLEzrPK3ZXo"
+}

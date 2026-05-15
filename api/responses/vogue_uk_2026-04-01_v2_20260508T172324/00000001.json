@@ -1,0 +1,18 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000001.jpg",
+  "window": {
+    "start": 1,
+    "end": 6
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n  \"classification\": \"editorial\",\n  \"reason\": \"This is the cover of Vogue magazine featuring Olivia Rodrigo as the cover star with the headline 'Pop's new romantic.' Magazine covers featuring a celebrity profile subject are editorial content, not advertising.\",\n  \"confidence\": 0.95\n}",
+  "usage": {
+    "input_tokens": 10364,
+    "output_tokens": 113,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 10477,
+    "cost_usd": 0.054645
+  },
+  "timestamp": "20260508T172324"
+}

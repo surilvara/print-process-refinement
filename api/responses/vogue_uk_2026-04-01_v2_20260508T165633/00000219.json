@@ -1,0 +1,15 @@
+{
+  "image": "00000219",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is a fashion editorial photograph featuring three models in styled outfits reading books and magazines against a white backdrop. There is no branding, product pricing, or advertising copy visible, indicating this is part of an editorial fashion spread typical of a magazine like Vogue.\",\n    \"confidence\": 0.9\n}",
+  "usage": {
+    "input_tokens": 10364,
+    "output_tokens": 125,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 10489,
+    "cost_usd": 0.027473
+  },
+  "timestamp": "20260508T165633",
+  "batch_id": "msgbatch_015TdK2p2MF5EoLEzrPK3ZXo"
+}

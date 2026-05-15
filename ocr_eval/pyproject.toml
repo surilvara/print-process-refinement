@@ -1,0 +1,8 @@
+[project]
+name = "ocr-eval"
+version = "0.1.0"
+description = "Compare OCR models against a Google Vision baseline."
+requires-python = ">=3.10"
+dependencies = [
+    "rapidfuzz>=3.0",
+]

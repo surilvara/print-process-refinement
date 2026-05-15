@@ -1,0 +1,12 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000219.jpg",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This image displays the characteristics of an editorial fashion spread\u2014a stylized photograph of three models in coordinated outfits reading books and magazines, set against a clean white studio backdrop. There is no brand name, logo, product information, website, or any advertising/sponsored label visible. The artistic styling and composition are typical of magazine editorial fashion features.\",\n    \"confidence\": 0.9\n}",
+  "usage": {
+    "input_tokens": 2234,
+    "output_tokens": 149,
+    "total_tokens": 2383,
+    "cost_usd": 0.044685
+  },
+  "timestamp": "20260508T144753"
+}

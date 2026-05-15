@@ -1,0 +1,19 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000154.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "prompt": "no_context",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is part of a feature article/interview about Olivia Rodrigo, with a pull quote about her album-making inspiration and extensive editorial text discussing her career, background, and rise to fame. It is clearly journalistic content rather than advertising.\",\n    \"confidence\": 0.98\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 116,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12173,
+    "cost_usd": 0.063185
+  },
+  "timestamp": "20260511T075952"
+}

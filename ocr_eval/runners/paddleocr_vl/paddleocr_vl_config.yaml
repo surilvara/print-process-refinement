@@ -1,0 +1,15 @@
+# PaddleOCR-VL runner config — for run.py (the standalone runner).
+#
+# Edit MLX server URL/model to match wherever your mlx-vlm server is
+# serving the PaddleOCR-VL weights.
+
+# Apple Silicon: offload VLM recognition to a local mlx-vlm server.
+# Comment out vl_rec_backend / vl_rec_server_url to run PaddlePaddle locally
+# (slow on CPU, much slower than the MLX-served version).
+vl_rec_backend: "mlx-vlm-server"
+vl_rec_server_url: "http://localhost:8111/v1"
+vl_rec_api_model_name: "mlx-community/PaddleOCR-VL-1.5-bf16"
+
+# PaddlePaddle layout-detection device.
+use_gpu: false
+engine: "paddle"

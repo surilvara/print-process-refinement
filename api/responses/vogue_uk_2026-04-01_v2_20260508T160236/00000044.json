@@ -1,0 +1,18 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000044.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This is the Editor's Letter page with page number 40, featuring editorial content discussing the magazine's articles, staff credits (photographers Mark Kean, Peter Langer), and the editor's signature.\",\n    \"confidence\": 0.99\n}",
+  "usage": {
+    "input_tokens": 12413,
+    "output_tokens": 102,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12515,
+    "cost_usd": 0.064615
+  },
+  "timestamp": "20260508T160236"
+}

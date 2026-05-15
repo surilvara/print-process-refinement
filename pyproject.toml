@@ -16,8 +16,13 @@ dependencies = [
     "opencv-python",
     "paddlepaddle",
     "paddleocr[doc-parser]",
+    "pyahocorasick",
+
     "mlx-vlm>=0.3.11; sys_platform == 'darwin' and platform_machine == 'arm64'",
 ]
 
 [project.scripts]
 pipeline = "main:main"
+
+[tool.setuptools.packages.find]
+where = ["open_src"]

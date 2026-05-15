@@ -20,9 +20,21 @@ The server downloads ~1.7 GB of weights on first launch and listens on port `811
 **Verify it's up:**
 
 ```bash
-mlx_server_running && echo "running" || echo "not running"
-tail -f logs/mlx_server.log     # see startup output and request logs
+mlx_server_running           # prints "running (port 8111)" or "not running"
+tail -f logs/mlx_server.log  # see startup output and request logs
 ```
+
+`mlx_server_running` probes `http://localhost:$MLX_VLM_PORT/health` — it
+only reports "running" once the API is actually serving requests, not just
+when the wrapper process has spawned. (The model takes ~2 min to load on
+first start, during which the process is alive but the server isn't ready
+yet.) The function also returns the appropriate exit code, so it still
+composes with `&&` / `||` and `if` if you want to script against it.
+
+You can also open
+[http://localhost:8111/docs](http://localhost:8111/docs) in a browser — if
+the Swagger page loads, the server is up. Hitting `/` will return 404 by
+design; MLX-VLM only exposes API routes.
 
 **Stop it:**
 

@@ -1,0 +1,19 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000076.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "prompt": "no_context",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is a 'Shop the Season' fashion editorial feature from Vogue magazine, showcasing styled looks with credits for multiple brands (M&S, Polo Ralph Lauren, Stella McCartney, etc.). It is editorial content curated by the magazine's fashion team rather than a paid advertisement from a single brand.\",\n    \"confidence\": 0.95\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 147,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12204,
+    "cost_usd": 0.06396
+  },
+  "timestamp": "20260511T075952"
+}

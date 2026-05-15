@@ -1,0 +1,19 @@
+{
+  "image": "00000002",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"advertising\",\n    \"reason\": \"This page features a full-bleed fashion image with no editorial text, page number, or article copy. It appears to be part of a fashion brand advertisement, likely connected to the Van Cleef & Arpels ad on the following page or another luxury brand campaign.\",\n    \"confidence\": 0.85\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 117,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12174,
+    "cost_usd": 0.031605
+  },
+  "timestamp": "20260508T164146",
+  "batch_id": "msgbatch_01EFXaMsfZ7JVCP2jAkBWvUq"
+}

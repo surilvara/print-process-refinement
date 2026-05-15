@@ -1,0 +1,22 @@
+# GLM-OCR SDK config pointing at a local mlx-vlm server.
+#
+# Used by run.py via `GlmOcr(config_path=...)`. Adjust api_port if you
+# launched start_server.sh on a different port.
+
+pipeline:
+  maas:
+    enabled: false
+
+  layout:
+    # PP-DocLayoutV3 in HuggingFace safetensors form. Auto-downloads on
+    # first run; cached under ~/.cache/huggingface afterwards.
+    model_dir: "PaddlePaddle/PP-DocLayoutV3_safetensors"
+
+  ocr_api:
+    api_host: localhost
+    api_port: 8112
+    model: mlx-community/GLM-OCR-bf16
+    api_path: /chat/completions   # mlx-vlm exposes this directly (no /v1 prefix)
+    verify_ssl: false
+    connect_timeout: 30
+    request_timeout: 180

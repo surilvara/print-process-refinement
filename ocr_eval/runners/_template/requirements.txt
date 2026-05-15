@@ -1,0 +1,6 @@
+# Pin the model-specific deps here. Each runner gets its own .venv so
+# different transformers / torch / paddle versions can coexist.
+#
+# Example:
+# paddleocr==2.10.0
+# paddlepaddle==2.6.1

@@ -1,0 +1,18 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000002.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"advertising\",\n    \"reason\": \"This page features a full-page fashion image with no editorial text, captions, or page numbers, characteristic of an advertisement. It appears to be part of a fashion brand's ad campaign, likely positioned near the magazine's front pages where premium ads are placed.\",\n    \"confidence\": 0.85\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 118,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12175,
+    "cost_usd": 0.063235
+  },
+  "timestamp": "20260508T163239"
+}

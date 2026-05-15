@@ -1,0 +1,18 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000002.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"advertising\",\n    \"reason\": \"This page features a full-page fashion image with no editorial text, captions, or article content. It appears to be a brand advertisement showing a model in a red dress, characteristic of a luxury fashion advertising campaign.\",\n    \"confidence\": 0.85\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 103,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12160,
+    "cost_usd": 0.06286
+  },
+  "timestamp": "20260508T172324"
+}

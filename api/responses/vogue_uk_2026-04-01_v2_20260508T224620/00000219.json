@@ -1,0 +1,19 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000219.jpg",
+  "window": {
+    "start": 2,
+    "end": 7
+  },
+  "prompt": "no_context",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page appears to be a fashion editorial photograph showing models posed with books and magazines, styled to depict a scene rather than directly advertise a specific brand. The aesthetic and composition is consistent with magazine fashion editorial spreads rather than a branded advertisement.\",\n    \"confidence\": 0.85\n}",
+  "usage": {
+    "input_tokens": 10364,
+    "output_tokens": 124,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 10488,
+    "cost_usd": 0.05492
+  },
+  "timestamp": "20260508T224620"
+}

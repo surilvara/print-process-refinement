@@ -1,0 +1,12 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000154.jpg",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page features a large pull-quote and editorial article text about Olivia Rodrigo, with a page number (150) indicating its place in the editorial sequence. The narrative journalistic style and continuation marker (>216) confirm it is editorial content.\",\n    \"confidence\": 0.97\n}",
+  "usage": {
+    "input_tokens": 2234,
+    "output_tokens": 115,
+    "total_tokens": 2349,
+    "cost_usd": 0.042135
+  },
+  "timestamp": "20260508T144749"
+}

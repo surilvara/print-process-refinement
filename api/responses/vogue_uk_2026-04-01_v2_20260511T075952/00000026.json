@@ -1,0 +1,19 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000026.jpg",
+  "window": {
+    "start": 1,
+    "end": 7
+  },
+  "prompt": "no_context",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"advertising\",\n    \"reason\": \"This page is a full-page brand advertisement for Van Cleef & Arpels, featuring the brand name, tagline 'Haute Joaillerie, place Vend\u00f4me since 1906', logo, retail locations (New Bond Street, Harrods, Selfridges), and website. There is no editorial content.\",\n    \"confidence\": 0.98\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 134,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12191,
+    "cost_usd": 0.063635
+  },
+  "timestamp": "20260511T075952"
+}

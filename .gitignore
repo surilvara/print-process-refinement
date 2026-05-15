@@ -4,6 +4,8 @@ inputs/
 processed/
 # Output results
 output/
+# SQLite mirror of output JSON
+database/
 # Log files
 logs/
 # MLX server PID file (auto-managed by .envrc)

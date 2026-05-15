@@ -1,0 +1,19 @@
+{
+  "image": "00000219",
+  "window": {
+    "start": 2,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page appears to be a fashion editorial photograph featuring three models in styled outfits reading books and magazines. There are no brand logos, advertising text, or product information visible, indicating it is part of an editorial fashion spread rather than an advertisement.\",\n    \"confidence\": 0.9\n}",
+  "usage": {
+    "input_tokens": 10364,
+    "output_tokens": 116,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 10480,
+    "cost_usd": 0.02736
+  },
+  "timestamp": "20260508T164146",
+  "batch_id": "msgbatch_01EFXaMsfZ7JVCP2jAkBWvUq"
+}

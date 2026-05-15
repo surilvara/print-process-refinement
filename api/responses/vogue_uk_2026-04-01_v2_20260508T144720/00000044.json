@@ -1,0 +1,12 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000044.jpg",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This is an Editor's Letter page with page number 40, photographer credits (Mark Kean, Peter Langer), and references to staff contributors. It's a standard editorial page in British Vogue.\",\n    \"confidence\": 0.98\n}",
+  "usage": {
+    "input_tokens": 2234,
+    "output_tokens": 99,
+    "total_tokens": 2333,
+    "cost_usd": 0.040935
+  },
+  "timestamp": "20260508T144738"
+}

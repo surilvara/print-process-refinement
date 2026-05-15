@@ -1,0 +1,18 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000219.jpg",
+  "window": {
+    "start": 2,
+    "end": 7
+  },
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page features a fashion editorial photograph showing models in styled outfits reading books and magazines, characteristic of magazine editorial content. There is no branded advertising copy, logo, or product pricing visible, indicating this is part of a fashion editorial spread rather than an advertisement.\",\n    \"confidence\": 0.9\n}",
+  "usage": {
+    "input_tokens": 10364,
+    "output_tokens": 127,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 10491,
+    "cost_usd": 0.054995
+  },
+  "timestamp": "20260508T172324"
+}

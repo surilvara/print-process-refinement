@@ -1,0 +1,12 @@
+{
+  "image": "inputs/vogue_uk_2026-04-01_v2/00000001.jpg",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This is the front cover of Vogue magazine featuring Olivia Rodrigo with editorial cover lines ('Pop's new romantic', 'I'm definitely a LOVER GIRL'). Magazine covers are editorial content promoting the issue's main feature story.\",\n    \"confidence\": 0.98\n}",
+  "usage": {
+    "input_tokens": 2234,
+    "output_tokens": 125,
+    "total_tokens": 2359,
+    "cost_usd": 0.042885
+  },
+  "timestamp": "20260508T144721"
+}

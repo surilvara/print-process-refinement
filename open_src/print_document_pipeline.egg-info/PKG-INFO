@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: print-document-pipeline
+Version: 1.0.0
+Summary: Modular pipeline for extracting structured information from scanned newspaper/magazine images
+Requires-Python: >=3.10
+Requires-Dist: python-doctr[torch]
+Requires-Dist: transformers
+Requires-Dist: torch
+Requires-Dist: torchvision
+Requires-Dist: spacy
+Requires-Dist: Pillow
+Requires-Dist: pypdfium2
+Requires-Dist: loguru
+Requires-Dist: pyyaml
+Requires-Dist: opencv-python
+Requires-Dist: paddlepaddle
+Requires-Dist: paddleocr[doc-parser]
+Requires-Dist: pyahocorasick
+Requires-Dist: mlx-vlm>=0.3.11; sys_platform == "darwin" and platform_machine == "arm64"

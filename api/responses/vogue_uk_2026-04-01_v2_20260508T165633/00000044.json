@@ -1,0 +1,15 @@
+{
+  "image": "00000044",
+  "model": "claude-opus-4-7",
+  "response": "{\n    \"classification\": \"editorial\",\n    \"reason\": \"This page is the Editor's Letter from British Vogue, written by the editor introducing the issue's content, cover star Olivia Rodrigo, and featured stories. It includes editorial commentary and a signature, which is characteristic of editorial content.\",\n    \"confidence\": 0.98\n}",
+  "usage": {
+    "input_tokens": 12057,
+    "output_tokens": 115,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "total_tokens": 12172,
+    "cost_usd": 0.03158
+  },
+  "timestamp": "20260508T165633",
+  "batch_id": "msgbatch_015TdK2p2MF5EoLEzrPK3ZXo"
+}

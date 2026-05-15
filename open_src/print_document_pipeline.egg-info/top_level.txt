@@ -1,0 +1,4 @@
+database
+logs
+output
+src
