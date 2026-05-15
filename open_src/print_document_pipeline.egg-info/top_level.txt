@@ -1,4 +1,1 @@
-database
-logs
-output
 src
