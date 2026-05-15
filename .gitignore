@@ -18,3 +18,5 @@ __pycache__/
 outputs/*
 
 responses/*
+
+ocr_eval/googlevision_outputs/*
