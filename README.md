@@ -11,60 +11,48 @@ uv run python -m spacy download en_core_web_trf
 
 On Apple Silicon, `mlx-vlm` is installed automatically as part of `pip install -e "."`.
 
-### 2. MLX-VLM server (Apple Silicon only) — auto-started by direnv
+### 2. MLX-VLM servers (Apple Silicon only)
 
-The default config offloads PaddleOCR-VL's heavy VLM recognition to a local MLX-VLM server running on the Apple GPU. **You don't need to start it manually** — `.envrc` boots it in the background the first time you `cd` into the project (or run `direnv reload`). Subsequent shells reuse the running instance.
+The default config offloads VLM recognition (PaddleOCR-VL, GLM-OCR) to local
+`mlx-vlm.server` instances running on the Apple GPU. They are managed by one
+small CLI — `./scripts/mlx` — and the Gradio app starts them on demand when
+you click **Run**, so most of the time you don't need to think about them.
 
-The server downloads ~1.7 GB of weights on first launch and listens on port `8111`.
+| Server | Port | Default model |
+|---|---|---|
+| `paddle` | 8111 | `mlx-community/PaddleOCR-VL-1.5-8bit` |
+| `glm`    | 8112 | `mlx-community/GLM-OCR-bf16` |
 
-**Verify it's up:**
+Each server downloads ~1–2 GB of weights on first launch.
 
-```bash
-mlx_server_running           # prints "running (port 8111)" or "not running"
-tail -f logs/mlx_server.log  # see startup output and request logs
-```
-
-`mlx_server_running` probes `http://localhost:$MLX_VLM_PORT/health` — it
-only reports "running" once the API is actually serving requests, not just
-when the wrapper process has spawned. (The model takes ~2 min to load on
-first start, during which the process is alive but the server isn't ready
-yet.) The function also returns the appropriate exit code, so it still
-composes with `&&` / `||` and `if` if you want to script against it.
-
-You can also open
-[http://localhost:8111/docs](http://localhost:8111/docs) in a browser — if
-the Swagger page loads, the server is up. Hitting `/` will return 404 by
-design; MLX-VLM only exposes API routes.
-
-**Stop it:**
+**Common commands** (work from any shell, no direnv required):
 
 ```bash
-mlx-stop
+./scripts/mlx status            # which servers are listening?
+./scripts/mlx start paddle      # idempotent — exits 0 if already up
+./scripts/mlx start glm
+./scripts/mlx stop paddle       # kills whatever holds the port
+./scripts/mlx stop all
+./scripts/mlx restart paddle    # for picking up a new model name
+./scripts/mlx logs paddle       # tail -F the log
 ```
 
-**Restart with a different quantization (smaller, faster, less accurate):**
+The source of truth is the listening TCP port — no PID files, no shell-state
+to go stale. `status` reports based on `lsof`, `start` waits up to 180s for
+the port to open (the model takes a minute or two to load on first start).
+
+**Switch to a different quantization** — edit `MODEL=` at the top of
+`scripts/start_mlx_server.sh` (paddle) or
+`ocr_eval/runners/glm_ocr/start_server.sh` (glm), then:
 
 ```bash
-mlx-stop
-MLX_VLM_MODEL=mlx-community/PaddleOCR-VL-1.5-4bit direnv reload
-# or 5bit / 6bit / 8bit — see scripts/start_mlx_server.sh for the full list
+./scripts/mlx restart paddle
 ```
 
-**Use a different port:**
+Available paddle quantizations: `bf16`, `8bit` (default), `6bit`, `5bit`, `4bit`.
 
-```bash
-mlx-stop
-MLX_VLM_PORT=9000 direnv reload
-# also update vl_rec_server_url in config.yaml to match
-```
-
-**Manual start (if you've disabled direnv or aren't on Apple Silicon):**
-
-```bash
-./scripts/start_mlx_server.sh
-```
-
-**Skip the MLX server entirely (CPU-only, slower):** comment out the `vl_rec_*` lines under `models.ocr` in `config.yaml`. The auto-start is harmless if you do this — the server will just sit idle.
+**Skip the MLX server entirely** (CPU-only, slow): comment out the
+`vl_rec_*` lines in `ocr_eval/runners/paddleocr_vl/paddleocr_vl_config.yaml`.
 
 ### 3. Run on a single file
 
@@ -85,20 +73,21 @@ Supported formats: `.jpg`, `.jpeg`, `.png`, `.pdf`
 ## Workflow at a glance
 
 ```
-direnv (on cd into project)        Your terminal
-──────────────────────────         ───────────────────────────────
-auto-starts MLX-VLM server         uv run python main.py -i …
-in the background                     ↓
-   ↓                               PaddleOCR-VL backend
-MLX-VLM server on :8111  ◀───────  (PaddlePaddle layout det. on CPU)
-(Apple GPU — recognition)             ↓
-logs → logs/mlx_server.log         OWLv2 + LayoutLMv3 (MPS)
-pid   → .mlx_server.pid            spaCy NER (CPU)
-                                      ↓
-                                   output/<file>_<timestamp>_<models>.json
+Your terminal                              ./scripts/mlx
+─────────────────────────────              ──────────────────────────
+uv run python main.py -i …                 status / start / stop / logs
+   ↓                                       ↓
+PaddleOCR-VL backend                       MLX-VLM server on :8111
+(PaddlePaddle layout det. on CPU)  ◀─────  (Apple GPU — VLM recognition)
+   ↓                                       logs → logs/mlx_server.log
+OWLv2 + LayoutLMv3 (MPS)
+spaCy NER (CPU)
+   ↓
+output/<file>_<timestamp>_<models>.json
 ```
 
-The MLX server keeps running until you call `mlx-stop` or kill the PID. Re-entering the directory in a new shell reuses it — no duplicate processes.
+The MLX servers keep running until you call `./scripts/mlx stop` or kill the
+port. Re-running the app in a new shell reuses them — no duplicate processes.
 
 ## CLI Options
 

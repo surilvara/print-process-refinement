@@ -3,10 +3,14 @@
 Usage:
     python compare.py --runner paddleocr_vl
     python compare.py --runner glm_ocr --csv results.csv
+    python compare.py --runner paddleocr_vl --gv-subdir vogue_uk_2026-04-01
 
 Reads:
-- ocr_eval/googlevision_outputs/<stem>.json   (baseline)
-- ocr_eval/outputs/<runner>/<stem>.json       (runner output, normalised schema)
+- ocr_eval/googlevision_output/[<gv-subdir>/]<stem>.json   (baseline)
+- ocr_eval/outputs/<runner>/<gv-subdir>_<ts>/<stem>.json   (latest per-invocation
+  run dir matching --gv-subdir; pass --run-dir to override).
+  Falls back to legacy flat `ocr_eval/outputs/<runner>/<stem>.json` if no
+  timestamped subdirs exist.
 
 Writes:
 - stdout summary
@@ -20,57 +24,76 @@ import csv
 import sys
 from pathlib import Path
 
-from db import insert_run
+from db import insert_run, insert_run_record, new_run_id
 from gvision_loader import load_gvision
 from metrics import ComparisonRow, compare
-from paths import DEFAULT_DB_PATH, GV_DIR, OUTPUTS_DIR, runner_output_dir
+from paths import (
+    DEFAULT_DB_PATH,
+    GV_DIR,
+    OUTPUTS_DIR,
+    latest_runner_run_dir,
+    runner_output_dir,
+)
 from schema import OcrOutput
 
 
-def _find_pairs(runner: str) -> list[tuple[Path, Path]]:
-    """Pair Google Vision JSONs with runner outputs.
+def _resolve_gv_dir(gv_subdir: str | None) -> Path:
+    """Return the GV directory, optionally scoped to a publication subfolder."""
+    if not gv_subdir:
+        return GV_DIR
+    scoped = GV_DIR / gv_subdir
+    if scoped.is_dir():
+        return scoped
+    # Fall back to root if scoped subdir doesn't exist; warn.
+    print(
+        f"warning: GV subdir {scoped} not found; falling back to {GV_DIR}",
+        file=sys.stderr,
+    )
+    return GV_DIR
 
-    Matching rule: the runner's filename stem must appear as a suffix of the
-    GV filename stem (after a non-alphanumeric separator). This handles
-    real-world GV exports that prefix the image stem with extra IDs, e.g.
-    `10800084_42524659_00000041.json` ↔ `00000041.json`.
+
+def _resolve_runner_dir(
+    runner: str, gv_subdir: str | None, run_dir: Path | None
+) -> Path:
+    """Resolve the directory containing `<runner>`'s output JSONs.
+
+    Preference order:
+      1. `run_dir` (explicit override) — used as-is.
+      2. Latest per-invocation subdir matching `<gv_subdir>_<timestamp>/`.
+      3. Legacy flat layout: `outputs/<runner>/` (backward compat).
     """
-    runner_dir = runner_output_dir(runner)
+    if run_dir is not None:
+        return run_dir
+    if gv_subdir:
+        latest = latest_runner_run_dir(runner, gv_subdir)
+        if latest is not None:
+            return latest
+    return runner_output_dir(runner)
+
+
+def _find_pairs(
+    runner: str,
+    gv_subdir: str | None = None,
+    run_dir: Path | None = None,
+) -> list[tuple[Path, Path]]:
+    """Pair Google Vision JSONs with runner outputs by exact stem match.
+
+    All sources (inputs/, googlevision_output/, outputs/<runner>/) are
+    expected to use the same `<id>.<ext>` filename convention, so pairing
+    is a straight stem equality. Files present on only one side are
+    reported as warnings.
+    """
+    runner_dir = _resolve_runner_dir(runner, gv_subdir, run_dir)
     if not runner_dir.is_dir():
         sys.exit(f"No runner output dir: {runner_dir}")
 
-    gv_files = {p.stem: p for p in GV_DIR.rglob("*.json") if p.stem != "README"}
+    gv_root = _resolve_gv_dir(gv_subdir)
+    gv_files = {p.stem: p for p in gv_root.rglob("*.json") if p.stem != "README"}
     runner_files = {p.stem: p for p in runner_dir.glob("*.json")}
 
-    # Map runner_stem → gv_stem using exact or trailing-stem match.
-    pairs: dict[str, str] = {}
-    for runner_stem in runner_files:
-        if runner_stem in gv_files:
-            pairs[runner_stem] = runner_stem
-            continue
-        # Look for a GV file whose stem ends with the runner stem after a
-        # non-alphanumeric separator (underscore, dash, dot, etc.).
-        candidates = [
-            gv_stem
-            for gv_stem in gv_files
-            if gv_stem.endswith(runner_stem)
-            and len(gv_stem) > len(runner_stem)
-            and not gv_stem[-len(runner_stem) - 1].isalnum()
-        ]
-        if len(candidates) == 1:
-            pairs[runner_stem] = candidates[0]
-        elif len(candidates) > 1:
-            print(
-                f"warning: {runner_stem} matches multiple GV files: {candidates}; "
-                f"using {candidates[0]}",
-                file=sys.stderr,
-            )
-            pairs[runner_stem] = candidates[0]
-
-    common = sorted(pairs)
-    paired_gv_stems = set(pairs.values())
-    missing_runner = sorted(set(gv_files) - paired_gv_stems)
-    missing_gv = sorted(set(runner_files) - set(pairs))
+    common = sorted(set(gv_files) & set(runner_files))
+    missing_runner = sorted(set(gv_files) - set(runner_files))
+    missing_gv = sorted(set(runner_files) - set(gv_files))
 
     if missing_runner:
         print(
@@ -85,7 +108,7 @@ def _find_pairs(runner: str) -> list[tuple[Path, Path]]:
             file=sys.stderr,
         )
     if not common:
-        sys.exit(f"No paired files found. GV dir: {GV_DIR}, runner dir: {runner_dir}")
+        sys.exit(f"No paired files found. GV dir: {gv_root}, runner dir: {runner_dir}")
 
     return [(gv_files[stem], runner_files[stem]) for stem in common]
 
@@ -96,6 +119,21 @@ def main() -> int:
     )
     parser.add_argument(
         "--runner", required=True, help="Runner name (subfolder under outputs/)"
+    )
+    parser.add_argument(
+        "--gv-subdir",
+        type=str,
+        default=None,
+        help="Subdirectory under googlevision_output/ to scope the baseline "
+        "(e.g. vogue_uk_2026-04-01). Also used to select the latest matching "
+        "`outputs/<runner>/<gv-subdir>_<timestamp>/` run dir when --run-dir is omitted.",
+    )
+    parser.add_argument(
+        "--run-dir",
+        type=Path,
+        default=None,
+        help="Explicit runner output directory. Overrides the auto-resolved "
+        "`outputs/<runner>/<gv-subdir>_<timestamp>/` lookup.",
     )
     parser.add_argument("--csv", type=Path, help="Optional CSV output path")
     parser.add_argument(
@@ -109,7 +147,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    pairs = _find_pairs(args.runner)
+    pairs = _find_pairs(args.runner, gv_subdir=args.gv_subdir, run_dir=args.run_dir)
     rows: list[ComparisonRow] = []
     for gv_path, runner_path in pairs:
         reference = load_gvision(gv_path)
@@ -132,13 +170,11 @@ def main() -> int:
     mean_cer = sum(r.cer for r in rows) / n
     mean_wer = sum(r.wer for r in rows) / n
     mean_iou = sum(r.mean_iou for r in rows) / n
-    mean_block_delta = sum(r.block_count_delta for r in rows) / n
     print()
     print(f"=== Summary: {args.runner} vs google_vision ({n} images) ===")
     print(f"  mean CER          : {mean_cer:.4f}")
     print(f"  mean WER          : {mean_wer:.4f}")
     print(f"  mean best-IoU     : {mean_iou:.4f}")
-    print(f"  mean block delta  : {mean_block_delta:+.2f}  (runner − GV)")
 
     if args.csv:
         args.csv.parent.mkdir(parents=True, exist_ok=True)
@@ -150,9 +186,18 @@ def main() -> int:
         print(f"\nWrote CSV: {args.csv}")
 
     if not args.no_db:
-        ts = insert_run(rows, db_path=args.db)
+        run_id = new_run_id()
+        insert_run_record(
+            run_id=run_id,
+            input_path=None,
+            runners=[args.runner],
+            skipped_ocr=True,
+            notes="compare.py single-runner",
+            db_path=args.db,
+        )
+        ts = insert_run(rows, db_path=args.db, run_id=run_id)
         if ts:
-            print(f"\nWrote {len(rows)} row(s) to {args.db} (run_timestamp={ts})")
+            print(f"\nWrote {len(rows)} row(s) to {args.db} (run_id={ts})")
 
     return 0
 

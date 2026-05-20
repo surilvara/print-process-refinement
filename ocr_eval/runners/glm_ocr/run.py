@@ -19,7 +19,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve()
 sys.path.insert(0, str(HERE.parents[2]))
 
-from runner_utils import image_size  # noqa: E402
+from runner_utils import (
+    image_size,
+    iter_image_inputs,
+    resolve_output_path,
+)  # noqa: E402
 from schema import BBox, OcrBlock, OcrOutput  # noqa: E402
 
 RUNNER_NAME = HERE.parent.name
@@ -86,12 +90,21 @@ def _extract_blocks(result) -> tuple[list[OcrBlock], str]:
     return blocks, "\n".join(text_parts)
 
 
-def run(image_path: Path) -> OcrOutput:
+def run(image_path: Path, parser=None) -> OcrOutput:
+    """Run GLM-OCR on a single image.
+
+    If `parser` is provided (an already-instantiated `GlmOcr`), it's reused —
+    important for batch mode where the model should load once. Otherwise a
+    fresh instance is created and closed for this single image.
+    """
     from glmocr import GlmOcr  # imported lazily so --help works without deps
 
     img_w, img_h = image_size(image_path)
 
-    with GlmOcr(config_path=str(CONFIG_PATH)) as parser:
+    if parser is None:
+        with GlmOcr(config_path=str(CONFIG_PATH)) as p:
+            result = p.parse(str(image_path))
+    else:
         result = parser.parse(str(image_path))
 
     blocks, full_text = _extract_blocks(result)
@@ -107,35 +120,88 @@ def run(image_path: Path) -> OcrOutput:
     )
 
 
+def _empty_result(image_path: Path) -> OcrOutput:
+    return OcrOutput(
+        image_stem=image_path.stem,
+        image_width=0,
+        image_height=0,
+        runner=RUNNER_NAME,
+        full_text="",
+        blocks=[],
+        source_image_path=str(image_path.resolve()),
+    )
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--input", required=True, type=Path, dest="input")
-    p.add_argument("--output", required=True, type=Path)
+    p.add_argument(
+        "--input",
+        required=True,
+        type=Path,
+        dest="input",
+        help="Image file or directory of images",
+    )
+    p.add_argument("--output", type=Path, help="Output JSON file (single-image mode)")
+    p.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Output directory (required in folder mode; one JSON per image)",
+    )
     args = p.parse_args()
 
-    if not args.input.is_file():
-        print(f"Image not found: {args.input}", file=sys.stderr)
+    if not args.input.exists():
+        print(f"Input not found: {args.input}", file=sys.stderr)
         return 1
 
+    images = iter_image_inputs(args.input)
+    if not images:
+        print(f"No images found at: {args.input}", file=sys.stderr)
+        return 1
+
+    is_batch = args.input.is_dir()
+    if args.output_dir:
+        args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Load the GLM-OCR model once for the whole batch.
+    from glmocr import GlmOcr  # noqa: E402
+
+    failures: list[tuple[str, str]] = []  # (image_stem, error)
+    exit_code = 0
+
     try:
-        result = run(args.input)
-    except Exception as exc:
-        print(f"{RUNNER_NAME} failed on {args.input.name}: {exc}", file=sys.stderr)
-        result = OcrOutput(
-            image_stem=args.input.stem,
-            image_width=0,
-            image_height=0,
-            runner=RUNNER_NAME,
-            full_text="",
-            blocks=[],
+        with GlmOcr(config_path=str(CONFIG_PATH)) as parser:
+            for image_path in images:
+                out_path = resolve_output_path(
+                    image_path, args.output, args.output_dir, is_batch
+                )
+                print(f"{RUNNER_NAME}: ▶ {image_path.name}", flush=True)
+                try:
+                    result = run(image_path, parser=parser)
+                except Exception as exc:  # noqa: BLE001 - keep batch alive
+                    print(
+                        f"{RUNNER_NAME} failed on {image_path.name}: {exc}",
+                        file=sys.stderr,
+                    )
+                    failures.append((image_path.stem, str(exc)))
+                    result = _empty_result(image_path)
+                    exit_code = 2  # signal partial failure to orchestrator
+                result.save(out_path)
+                print(
+                    f"{RUNNER_NAME}: {image_path.name} → "
+                    f"{len(result.blocks)} blocks, {len(result.full_text)} chars → {out_path}"
+                )
+    except Exception as exc:  # noqa: BLE001 - model load / runner-wide failure
+        print(f"{RUNNER_NAME} runner-wide failure: {exc}", file=sys.stderr)
+        return 1
+
+    if failures:
+        print(
+            f"\n{RUNNER_NAME}: {len(failures)} image(s) failed: "
+            f"{[s for s, _ in failures]}",
+            file=sys.stderr,
         )
 
-    result.save(args.output)
-    print(
-        f"{RUNNER_NAME}: {args.input.name} → "
-        f"{len(result.blocks)} blocks, {len(result.full_text)} chars → {args.output}"
-    )
-    return 0
+    return exit_code
 
 
 if __name__ == "__main__":

@@ -19,9 +19,10 @@ ocr_eval/
 ├── schema.py              Normalised OCR output schema (OcrOutput, OcrBlock, BBox)
 ├── gvision_loader.py      Google Vision JSON → OcrOutput
 ├── metrics.py             CER, WER, block-count delta, mean bbox IoU
-├── compare.py             Per-image table + summary + SQLite write
-├── db.py                  SQLite store (best-effort)
-├── runner_utils.py        Shared helpers (sys.path injection, image_size)
+├── evaluate.py            Orchestrator: run N runners + compare under one run_id
+├── compare.py             Single-runner compare (kept for tight inner loops)
+├── db.py                  SQLite store: runs, comparisons, run_failures
+├── runner_utils.py        Shared helpers (sys.path injection, image_size, folder iter)
 ├── results.db             SQLite history (created on first compare)
 ├── pyproject.toml         Harness deps: rapidfuzz, Pillow
 │
@@ -38,11 +39,13 @@ ocr_eval/
 | Module             | Used by                | Purpose                                           |
 |--------------------|------------------------|---------------------------------------------------|
 | `schema.py`        | everyone               | Single shape for OCR output across all runners    |
-| `paths.py`         | compare, runners       | Where things live on disk                         |
-| `runner_utils.py`  | every runner           | `sys.path` setup + `image_size()`                 |
-| `gvision_loader.py`| compare                | Parse `fullTextAnnotation` → blocks               |
-| `metrics.py`       | compare                | CER / WER / IoU / block delta                     |
-| `db.py`            | compare                | Append rows to `results.db`                       |
+| `paths.py`         | compare, evaluate, runners | Where things live on disk                     |
+| `runner_utils.py`  | every runner           | `sys.path` setup, `image_size()`, folder iter     |
+| `gvision_loader.py`| compare, evaluate      | Parse `fullTextAnnotation` → blocks               |
+| `metrics.py`       | compare, evaluate      | CER / WER / IoU / block delta                     |
+| `db.py`            | compare, evaluate      | `runs`, `comparisons`, `run_failures` tables      |
+| `compare.py`       | CLI                    | Single-runner compare; writes one row to `runs`   |
+| `evaluate.py`      | CLI                    | Orchestrator: runs N runners + compare under one `run_id` |
 
 If you find yourself duplicating code in two runners, add it to
 `runner_utils.py` instead.
@@ -64,47 +67,79 @@ than the image stem are also supported as long as the stem appears as a
 trailing component (e.g. `10800084_42524659_00000041.json` pairs with
 `00000041.jpg`).
 
-### 2. Produce normalised output for the runner(s) you want to test
+### 2. Run OCR + compare in one command (recommended)
 
-See **Running a specific model** below.
+`evaluate.py` runs every requested OCR model over a folder of images and
+compares each against the GV baseline. All comparison rows and any
+OCR-stage failures are persisted under a single `run_id`, so you can
+query the whole evaluation as one unit.
 
-### 3. Compare and persist
+```bash
+cd ocr_eval
+
+# Run every discovered runner on a publication folder
+uv run python evaluate.py --input ../inputs/vogue_uk_2026-04-01/ --all
+
+# Or pick specific runners (repeatable)
+uv run python evaluate.py -i ../inputs/vogue_uk_2026-04-01/ \
+  --runner paddleocr_vl --runner glm_ocr
+
+# Skip OCR — just (re)compare whatever is already in outputs/<runner>/
+uv run python evaluate.py --skip-ocr --all
+
+# Skip the DB write entirely
+uv run python evaluate.py -i ../inputs/foo/ --all --no-db
+```
+
+Each runner is invoked exactly once as a subprocess against its own venv
+(`runners/<name>/.venv/bin/python run.py --input <folder> --output-dir
+outputs/<name>`), so the model loads **once** per runner and is reused
+across every image in the folder.
+
+A runner-wide failure (missing venv, model load crash) is recorded in
+`run_failures` and the orchestrator continues with the remaining runners.
+
+### 3. Single-runner compare (legacy)
+
+Still supported for tight inner loops on one model:
 
 ```bash
 cd ocr_eval
 uv run python compare.py --runner paddleocr_vl
-uv run python compare.py --runner glm_ocr
 ```
 
-Each invocation:
-- Prints a per-image table + summary.
-- Appends rows to `results.db` (tagged with a UTC `run_timestamp`).
-- Optionally writes a CSV with `--csv path/to/file.csv`.
-
-Skip the DB write with `--no-db`.
+It allocates its own `run_id` and writes one row to `runs`. Use the
+orchestrator above when you want multiple runners grouped together.
 
 ### 4. Query the history
 
 ```bash
-# Latest result per runner per image
+# Most recent eval per runner
 sqlite3 ocr_eval/results.db \
   "SELECT runner, image_stem, cer, wer, mean_iou
    FROM latest_comparison ORDER BY runner, image_stem;"
 
-# Mean metrics across the latest run for each runner
+# All runners that participated in a single evaluation
 sqlite3 ocr_eval/results.db \
-  "SELECT runner,
-          ROUND(AVG(cer),4)      AS mean_cer,
-          ROUND(AVG(wer),4)      AS mean_wer,
-          ROUND(AVG(mean_iou),4) AS mean_iou,
-          COUNT(*)               AS n
-   FROM latest_comparison GROUP BY runner;"
+  "SELECT run_id, started_at, runners, skipped_ocr, notes
+   FROM runs ORDER BY started_at DESC LIMIT 10;"
+
+# Side-by-side metrics for one run_id
+sqlite3 ocr_eval/results.db \
+  "SELECT runner, image_stem, cer, wer, mean_iou
+   FROM comparisons WHERE run_id='20260518T104348Z'
+   ORDER BY image_stem, runner;"
+
+# OCR-stage failures for a given run
+sqlite3 ocr_eval/results.db \
+  "SELECT runner, image_stem, stage, error_message
+   FROM run_failures WHERE run_id='20260518T104348Z';"
 
 # History of a single image
 sqlite3 ocr_eval/results.db \
-  "SELECT run_timestamp, runner, cer, wer
+  "SELECT run_id, runner, cer, wer
    FROM comparisons WHERE image_stem='00000041'
-   ORDER BY run_timestamp;"
+   ORDER BY run_id;"
 ```
 
 ## Running a specific model
@@ -120,10 +155,15 @@ Two paths. Pick whichever fits your workflow:
 # One-time:
 cd ocr_eval/runners/paddleocr_vl && chmod +x setup.sh && ./setup.sh
 
-# Then for each image:
+# Single image:
 .venv/bin/python run.py \
   --input ../../../inputs/vogue_uk_2026-04-01/00000041.jpg \
   --output ../../outputs/paddleocr_vl/00000041.json
+
+# Folder of images (model loads once, loops internally):
+.venv/bin/python run.py \
+  --input ../../../inputs/vogue_uk_2026-04-01/ \
+  --output-dir ../../outputs/paddleocr_vl/
 ```
 
 **(B) Converter** — translates existing `open_src/` pipeline output into the
@@ -157,21 +197,16 @@ Each run (two terminals):
 # Terminal 1 — leave running
 cd ocr_eval/runners/glm_ocr && ./start_server.sh
 
-# Terminal 2 — invoke the runner per image
+# Terminal 2 — single image
 cd ocr_eval/runners/glm_ocr
 .venv/bin/python run.py \
   --input ../../../inputs/vogue_uk_2026-04-01/00000041.jpg \
   --output ../../outputs/glm_ocr/00000041.json
-```
 
-To loop over a folder:
-
-```bash
-cd ocr_eval/runners/glm_ocr
-for img in ../../../inputs/vogue_uk_2026-04-01/*.jpg; do
-  stem=$(basename "$img" .jpg)
-  .venv/bin/python run.py --input "$img" --output "../../outputs/glm_ocr/${stem}.json"
-done
+# Terminal 2 — folder of images (model loads once, loops internally)
+.venv/bin/python run.py \
+  --input ../../../inputs/vogue_uk_2026-04-01/ \
+  --output-dir ../../outputs/glm_ocr/
 ```
 
 Full details: [runners/glm_ocr/README.md](runners/glm_ocr/README.md).
@@ -196,20 +231,28 @@ Full details: [runners/glm_ocr/README.md](runners/glm_ocr/README.md).
 
    (One venv per runner avoids cross-model `transformers`/`torch` conflicts.)
 
-4. Run it against an image:
+4. Run it against an image or a folder:
 
    ```bash
-   .venv/bin/python run.py --input <path> --output ../../outputs/my_model/<stem>.json
+   # Single image
+   .venv/bin/python run.py --input <img> --output ../../outputs/my_model/<stem>.json
+
+   # Whole folder (model loads once)
+   .venv/bin/python run.py --input <folder> --output-dir ../../outputs/my_model/
    ```
 
-5. Compare:
+5. Compare (single runner) or evaluate with others under one `run_id`:
 
    ```bash
-   cd ocr_eval && uv run python compare.py --runner my_model
+   cd ocr_eval
+   uv run python compare.py --runner my_model
+
+   # Or, alongside existing runners:
+   uv run python evaluate.py -i ../inputs/<folder>/ --all
    ```
 
-The harness will create `outputs/my_model/` and a new row in `results.db`
-the first time it sees the runner. No comparator changes needed.
+The orchestrator auto-discovers any `runners/<name>/run.py`. No comparator
+or orchestrator changes needed when you add a new runner.
 
 ## Why separate venvs per runner?
 
@@ -225,7 +268,6 @@ a subprocess. The comparator's deps stay minimal (`rapidfuzz`, `Pillow`).
 | `cer`              | Char-level Levenshtein / len(reference text)              |
 | `wer`              | Token-level Levenshtein / len(reference words)            |
 | `mean_iou`         | For each GV block, best IoU with hyp blocks, averaged     |
-| `block_count_delta`| `len(hyp.blocks) − len(ref.blocks)` (negative = under-segmenting) |
 | `ref_chars` / `hyp_chars` | Raw character counts (sanity check)                |
 
 Text comparison normalises whitespace and case but **keeps punctuation** —

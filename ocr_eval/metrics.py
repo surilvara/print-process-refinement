@@ -83,7 +83,6 @@ class ComparisonRow:
     wer: float
     ref_block_count: int
     hyp_block_count: int
-    block_count_delta: int
     mean_iou: float
     ref_chars: int
     hyp_chars: int
@@ -97,7 +96,6 @@ class ComparisonRow:
             "wer",
             "ref_block_count",
             "hyp_block_count",
-            "block_count_delta",
             "mean_iou",
             "ref_chars",
             "hyp_chars",
@@ -111,7 +109,6 @@ class ComparisonRow:
             f"{self.wer:.4f}",
             str(self.ref_block_count),
             str(self.hyp_block_count),
-            str(self.block_count_delta),
             f"{self.mean_iou:.4f}",
             str(self.ref_chars),
             str(self.hyp_chars),
@@ -126,7 +123,6 @@ def compare(reference: OcrOutput, hypothesis: OcrOutput) -> ComparisonRow:
         wer=round(word_error_rate(reference.full_text, hypothesis.full_text), 4),
         ref_block_count=len(reference.blocks),
         hyp_block_count=len(hypothesis.blocks),
-        block_count_delta=len(hypothesis.blocks) - len(reference.blocks),
         mean_iou=mean_best_match_iou(reference.blocks, hypothesis.blocks),
         ref_chars=len(reference.full_text),
         hyp_chars=len(hypothesis.full_text),

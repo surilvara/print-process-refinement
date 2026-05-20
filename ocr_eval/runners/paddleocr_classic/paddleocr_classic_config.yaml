@@ -1,0 +1,6 @@
+# Classic PaddleOCR (PP-OCRv5) config for the standalone runner.
+#
+# This is text detection + recognition only — no layout analysis, no VLM.
+# Much faster than PaddleOCR-VL but produces no semantic block labels.
+
+lang: "en"

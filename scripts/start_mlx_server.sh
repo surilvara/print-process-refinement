@@ -9,12 +9,12 @@ set -uo pipefail
 
 PORT="${1:-8111}"
 # Quantization options (smaller = faster, less accurate):
-#   mlx-community/PaddleOCR-VL-1.5-bf16   (full precision, default)
-#   mlx-community/PaddleOCR-VL-1.5-8bit
+#   mlx-community/PaddleOCR-VL-1.5-bf16   (full precision)
+#   mlx-community/PaddleOCR-VL-1.5-8bit   (default — ~1.5-2x faster, near-bf16 accuracy)
 #   mlx-community/PaddleOCR-VL-1.5-6bit
 #   mlx-community/PaddleOCR-VL-1.5-5bit
 #   mlx-community/PaddleOCR-VL-1.5-4bit
-MODEL="${MLX_VLM_MODEL:-mlx-community/PaddleOCR-VL-1.5-bf16}"
+MODEL="${MLX_VLM_MODEL:-mlx-community/PaddleOCR-VL-1.5-8bit}"
 
 # Prepend ISO-8601 timestamps to every line of stdout/stderr so the
 # log file (logs/mlx_server.log) is readable alongside pipeline.log.
@@ -27,7 +27,7 @@ for line in sys.stdin:
 ') 2>&1
 
 # Log a clear stop marker no matter how the server exits (Ctrl-C,
-# SIGTERM from `mlx-stop`, child crash). EXIT fires after INT/TERM too.
+# SIGTERM from `./scripts/mlx stop`, child crash). EXIT fires after INT/TERM too.
 on_exit() {
   local code=$?
   if [[ -n "${SERVER_PID:-}" ]] && kill -0 "$SERVER_PID" 2>/dev/null; then

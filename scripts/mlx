@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+# Unified controller for the two mlx-vlm.server instances this project depends on.
+#
+# Source of truth = the listening TCP port. No PID files. Works from any shell,
+# with or without direnv loaded.
+#
+# Usage:
+#   ./scripts/mlx status [paddle|glm|all]   # default: all
+#   ./scripts/mlx start  <paddle|glm>
+#   ./scripts/mlx stop   [paddle|glm|all]
+#   ./scripts/mlx restart <paddle|glm>
+#   ./scripts/mlx logs    <paddle|glm>
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+READY_TIMEOUT="${MLX_READY_TIMEOUT:-180}"
+
+# ANSI colours (only on a TTY).
+if [[ -t 1 ]]; then
+  C_OK=$'\033[32m'; C_ERR=$'\033[31m'; C_DIM=$'\033[2m'; C_RST=$'\033[0m'
+else
+  C_OK=""; C_ERR=""; C_DIM=""; C_RST=""
+fi
+
+# Registry: name|port|start_script (relative to project root)|log_file (relative to project root)
+_specs() {
+  cat <<'EOF'
+paddle|8111|scripts/start_mlx_server.sh|logs/mlx_server.log
+glm|8112|ocr_eval/runners/glm_ocr/start_server.sh|ocr_eval/runners/glm_ocr/logs/mlx_glm_ocr.log
+EOF
+}
+
+_spec_field() {
+  # _spec_field <name> <field index 1-4>
+  local name="$1" idx="$2" line
+  line="$(_specs | awk -F'|' -v n="$name" '$1==n{print; exit}')"
+  if [[ -z "$line" ]]; then
+    printf '%sUnknown server: %s%s\n' "$C_ERR" "$name" "$C_RST" >&2
+    printf '%sKnown: paddle, glm%s\n' "$C_DIM" "$C_RST" >&2
+    return 2
+  fi
+  echo "$line" | awk -F'|' -v i="$idx" '{print $i}'
+}
+
+_port_of()       { _spec_field "$1" 2; }
+_script_of()     { echo "$PROJECT_ROOT/$(_spec_field "$1" 3)"; }
+_log_of()        { echo "$PROJECT_ROOT/$(_spec_field "$1" 4)"; }
+
+_port_pid() {
+  # Print the PID listening on $1, or nothing.
+  lsof -nP -iTCP:"$1" -sTCP:LISTEN -t 2>/dev/null || true
+}
+
+_port_open() {
+  [[ -n "$(_port_pid "$1")" ]]
+}
+
+_all_names() {
+  _specs | awk -F'|' '{print $1}'
+}
+
+_resolve_targets() {
+  # Accepts: nothing | all | paddle | glm. Echoes one name per line.
+  local arg="${1:-all}"
+  if [[ "$arg" == "all" ]]; then
+    _all_names
+  else
+    # Validate.
+    _port_of "$arg" >/dev/null
+    echo "$arg"
+  fi
+}
+
+cmd_status() {
+  local arg="${1:-all}"
+  while read -r name; do
+    local port pid
+    port="$(_port_of "$name")"
+    pid="$(_port_pid "$port")"
+    if [[ -n "$pid" ]]; then
+      printf '%s● %-6s%s running on port %s (pid %s)\n' "$C_OK" "$name" "$C_RST" "$port" "$pid"
+    else
+      printf '%s○ %-6s%s not running (port %s free)\n' "$C_DIM" "$name" "$C_RST" "$port"
+    fi
+  done < <(_resolve_targets "$arg")
+}
+
+cmd_start() {
+  local name="${1:-}"
+  if [[ -z "$name" || "$name" == "all" ]]; then
+    printf '%sstart requires a server name (paddle or glm)%s\n' "$C_ERR" "$C_RST" >&2
+    return 2
+  fi
+  local port script log
+  port="$(_port_of "$name")"
+  script="$(_script_of "$name")"
+  log="$(_log_of "$name")"
+
+  if _port_open "$port"; then
+    printf '%s● %s%s already running on port %s\n' "$C_OK" "$name" "$C_RST" "$port"
+    return 0
+  fi
+
+  if [[ ! -x "$script" && ! -f "$script" ]]; then
+    printf '%sstart script not found: %s%s\n' "$C_ERR" "$script" "$C_RST" >&2
+    return 1
+  fi
+
+  mkdir -p "$(dirname "$log")"
+  printf 'Starting %s (port %s)…\n' "$name" "$port"
+  printf '  script: %s%s%s\n' "$C_DIM" "$script" "$C_RST"
+  printf '  log:    %s%s%s\n' "$C_DIM" "$log" "$C_RST"
+
+  # nohup + disown so the server survives this shell exiting.
+  nohup bash "$script" "$port" >>"$log" 2>&1 &
+  disown || true
+
+  # Wait for the port to open.
+  local deadline=$(( $(date +%s) + READY_TIMEOUT ))
+  while (( $(date +%s) < deadline )); do
+    if _port_open "$port"; then
+      printf '%s✓ %s ready on port %s%s\n' "$C_OK" "$name" "$port" "$C_RST"
+      return 0
+    fi
+    sleep 1
+  done
+
+  printf '%s✗ Timed out after %ss waiting for %s on port %s%s\n' \
+    "$C_ERR" "$READY_TIMEOUT" "$name" "$port" "$C_RST" >&2
+  printf '%sTail %s for details.%s\n' "$C_DIM" "$log" "$C_RST" >&2
+  return 1
+}
+
+cmd_stop() {
+  local arg="${1:-all}"
+  local stopped=0
+  while read -r name; do
+    local port pids
+    port="$(_port_of "$name")"
+    pids="$(_port_pid "$port")"
+    if [[ -z "$pids" ]]; then
+      printf '%s○ %s not running%s\n' "$C_DIM" "$name" "$C_RST"
+      continue
+    fi
+    printf 'Stopping %s (pid %s, port %s)…\n' "$name" "$(echo "$pids" | tr '\n' ' ')" "$port"
+    # shellcheck disable=SC2086
+    kill $pids 2>/dev/null || true
+
+    # Wait briefly for the port to clear; SIGKILL on timeout.
+    local deadline=$(( $(date +%s) + 10 ))
+    while (( $(date +%s) < deadline )); do
+      _port_open "$port" || break
+      sleep 0.5
+    done
+    if _port_open "$port"; then
+      pids="$(_port_pid "$port")"
+      printf '%s  SIGKILL %s%s\n' "$C_DIM" "$pids" "$C_RST"
+      # shellcheck disable=SC2086
+      kill -9 $pids 2>/dev/null || true
+      sleep 1
+    fi
+    if _port_open "$port"; then
+      printf '%s✗ %s still listening on port %s%s\n' "$C_ERR" "$name" "$port" "$C_RST" >&2
+    else
+      printf '%s✓ %s stopped%s\n' "$C_OK" "$name" "$C_RST"
+      stopped=$((stopped+1))
+    fi
+  done < <(_resolve_targets "$arg")
+}
+
+cmd_restart() {
+  local name="${1:-}"
+  if [[ -z "$name" || "$name" == "all" ]]; then
+    printf '%srestart requires a server name (paddle or glm)%s\n' "$C_ERR" "$C_RST" >&2
+    return 2
+  fi
+  cmd_stop "$name"
+  cmd_start "$name"
+}
+
+cmd_logs() {
+  local name="${1:-}"
+  if [[ -z "$name" ]]; then
+    printf '%slogs requires a server name (paddle or glm)%s\n' "$C_ERR" "$C_RST" >&2
+    return 2
+  fi
+  local log
+  log="$(_log_of "$name")"
+  if [[ ! -f "$log" ]]; then
+    printf '%sNo log file yet at %s%s\n' "$C_DIM" "$log" "$C_RST"
+    return 1
+  fi
+  exec tail -F "$log"
+}
+
+usage() {
+  cat <<EOF
+Usage: $(basename "$0") <command> [args]
+
+Commands:
+  status [paddle|glm|all]    Show which servers are listening (default: all)
+  start  <paddle|glm>        Start a server (idempotent; waits for port)
+  stop   [paddle|glm|all]    Stop a server by port (default: all)
+  restart <paddle|glm>       Stop then start
+  logs    <paddle|glm>       tail -F the log file
+
+Env:
+  MLX_READY_TIMEOUT          Seconds to wait for port to open (default 180)
+
+Examples:
+  $(basename "$0") status
+  $(basename "$0") start paddle
+  $(basename "$0") restart glm
+  $(basename "$0") logs paddle
+EOF
+}
+
+main() {
+  local cmd="${1:-}"
+  [[ $# -gt 0 ]] && shift || true
+  case "$cmd" in
+    status)  cmd_status  "$@" ;;
+    start)   cmd_start   "$@" ;;
+    stop)    cmd_stop    "$@" ;;
+    restart) cmd_restart "$@" ;;
+    logs)    cmd_logs    "$@" ;;
+    -h|--help|help|"") usage ;;
+    *)
+      printf '%sUnknown command: %s%s\n\n' "$C_ERR" "$cmd" "$C_RST" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+}
+
+main "$@"

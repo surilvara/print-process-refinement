@@ -92,12 +92,13 @@ uv run python main.py --input ./inputs/
 uv run python main.py -i ./inputs/ -o ./results/ --log-level DEBUG
 ```
 
-### MLX-VLM server (Apple Silicon — auto-started by direnv)
+### MLX-VLM servers (Apple Silicon — managed via `./scripts/mlx`)
 ```bash
-mlx_server_running        # "running (port 8111)" or "not running"
-mlx-stop                  # stop the server
-direnv reload             # restart (e.g. after mlx-stop or model change)
-tail -f logs/mlx_server.log
+./scripts/mlx status                # which servers are listening
+./scripts/mlx start paddle          # idempotent
+./scripts/mlx stop paddle
+./scripts/mlx restart paddle        # after model change
+./scripts/mlx logs paddle
 ```
 
 ### MPS fallback (if OWLv2 / LayoutLMv3 hit unsupported op)
