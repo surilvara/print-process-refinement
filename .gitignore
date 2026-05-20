@@ -20,3 +20,5 @@ outputs/*
 responses/*
 
 ocr_eval/googlevision_outputs/*
+
+.json
